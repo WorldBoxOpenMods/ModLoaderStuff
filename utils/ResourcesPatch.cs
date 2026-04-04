@@ -8,7 +8,6 @@ using UnityEngine;
 using UnityEngine.U2D;
 using Object = UnityEngine.Object;
 using NeoModLoader.utils.Sounds;
-using Patches = NeoModLoader.utils.Sounds.Patches;
 
 namespace NeoModLoader.utils;
 
@@ -44,7 +43,6 @@ public static class ResourcesPatch
     internal static void Initialize()
     {
         AssetManager._instance.add(SoundLibrary.MainLibrary = new SoundLibrary(),"CustomAudio");
-        Harmony.CreateAndPatchAll(typeof(Patches), Others.harmony_id);
         FMODHelper.InitFMOD();
         
         tree = new ResourceTree();
@@ -97,9 +95,8 @@ public static class ResourcesPatch
             player.WriteToFile(JsonPath);
         }
         player.GenerateSound(abspath);
-        string Name;
-        Name = int.TryParse(Path.GetFileName(path), out int Index) ? Path.GetDirectoryName(path) : path;
-        SoundLibrary.MainLibrary.CheckID(Name).Players.Add(Index, player);
+        string Name = int.TryParse(Path.GetFileName(path), out int Index) ? Path.GetDirectoryName(path) : path;
+        SoundLibrary.MainLibrary.GetOrCreate(Name).Players.Add(Index, player);
     }
 
     private static TextAsset LoadTextAsset(string path)

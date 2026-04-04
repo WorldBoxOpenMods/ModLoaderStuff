@@ -7,7 +7,8 @@ namespace NeoModLoader.utils.Sounds;
 using static SoundLibrary;
 using static FMODHelper;
 using static FMODException;
-static class Patches
+
+internal static class FMODPatches
 {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MusicBox), nameof(MusicBox.playDrawingSound))]
@@ -18,8 +19,8 @@ static class Patches
         {
             return true;
         }
-        if (!MainLibrary.dict.ContainsKey(pSoundPath)) return true;
-        MainLibrary.LoadDrawingSound(pSoundPath, pX, pY);
+        if (!MainLibrary.dict.TryGetValue(pSoundPath, out var player)) return true;
+        player.PlayDrawingSound(pX, pY);
         return false;
     }
     [HarmonyPrefix]
@@ -37,12 +38,12 @@ static class Patches
             return true;
         }
         if (!MainLibrary.dict.TryGetValue(pSoundPath, out var player)) return true;
-        LoadSound(player, pX, pY);
+        player.PlaySound(pX, pY);
         return false;
     }
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MapBox), nameof(MapBox.clearWorld))]
-    public static void ClearAllCustomSounds()
+    static void ClearAllCustomSounds()
     {
        MainLibrary.ClearSounds();
     }
@@ -158,7 +159,7 @@ public class AudioChannel
     /// <summary>
     /// A FMOD Audio Channel which plays the sound
     /// </summary>
-    public Channel Channel { get; internal set; }
+    public readonly Channel Channel;
     /// <summary>
     /// The Transform or gameobject which this Sound is attached two. sounds whose mode is BASIC must not use this
     /// </summary>

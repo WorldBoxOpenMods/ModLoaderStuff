@@ -8,6 +8,7 @@ using NeoModLoader.ncms_compatible_layer;
 using NeoModLoader.services;
 using NeoModLoader.ui;
 using NeoModLoader.utils;
+using NeoModLoader.utils.Sounds;
 using UnityEngine;
 
 namespace NeoModLoader;
@@ -101,6 +102,7 @@ public class WorldBoxMod : MonoBehaviour
         HarmonyUtils._init();
         Harmony.CreateAndPatchAll(typeof(LM), Others.harmony_id);
         Harmony.CreateAndPatchAll(typeof(ResourcesPatch), Others.harmony_id);
+        Harmony.CreateAndPatchAll(typeof(FMODPatches), Others.harmony_id);
         if (!SmoothLoader.isLoading()) SmoothLoader.prepare();
 
         SmoothLoader.add(() =>

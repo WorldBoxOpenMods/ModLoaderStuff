@@ -1,6 +1,7 @@
 ﻿using FMOD;
 using NeoModLoader.services;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace NeoModLoader.utils.Sounds;
 using static FMODHelper;
@@ -78,13 +79,42 @@ public class SoundAsset : Asset
     {
         Players.Add(Players.Count, sound);
     }
+    /// <summary>
+    /// Loads a custom sound from the wav library
+    /// </summary>
+    /// <param name="pX">the X position</param>
+    /// <param name="pY">the Y position</param>
+    /// <param name="AttachedTo">The transform to attach the sound to, if 3D</param>
+    /// <returns>The Audio Channel</returns>
+    public AudioChannel PlaySound(float pX, float pY, Transform AttachedTo = null)
+    {
+        var player = GetRandom();
+        AudioChannel channel = new AudioChannel(player.PlaySound(pX, pY), AttachedTo);
+        Handler.Channels.Add(channel);
+        return channel;
+    }
+    /// <summary>
+    /// plays a sound at a location unless another sound with the same path is playing, then the other sound is set to that position 
+    /// </summary>
+    public AudioChannel PlayDrawingSound(float pX, float pY)
+    {
+        if(Handler.DrawingSound is { Finushed: false })
+        {
+            SetChannelPosition(Handler.DrawingSound.Channel, pX, pY);
+        }
+        else
+        {
+            Handler.DrawingSound = PlaySound(pX, pY);
+        }
+        return Handler.DrawingSound;
+    }
     public SoundAsset(string id)
     {
         this.id = id;
     }
     public ISoundPlayer GetRandom()
     {
-        return Players.Values.GetRandom();
+        return Players.Count == 0 ? null : Players.Values.GetRandom();
     }
 }
 /// <summary>
