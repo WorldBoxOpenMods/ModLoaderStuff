@@ -80,7 +80,7 @@ public class SoundAsset : Asset
         Players.Add(Players.Count, sound);
     }
     /// <summary>
-    /// Loads a custom sound from the wav library
+    /// plays a random sound of the Players list
     /// </summary>
     /// <param name="pX">the X position</param>
     /// <param name="pY">the Y position</param>
@@ -138,7 +138,7 @@ public class SoundFilePlayer : ISoundPlayer
     {
         try
         {
-            player = JsonConvert.DeserializeObject<SoundFilePlayer>(path);
+            player = JsonConvert.DeserializeObject<SoundFilePlayer>(File.ReadAllText(path));
             return true;
         }
         catch (Exception)

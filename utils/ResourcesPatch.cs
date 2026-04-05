@@ -86,7 +86,7 @@ public static class ResourcesPatch
         };
     }
     /// <summary>
-    /// simply adds the sound to the sounds library that contains all the custom sounds
+    /// adds the sound to the sounds library that contains all the custom sounds
     /// </summary>
     private static void LoadSoundFile(string abspath, string path)
     {
