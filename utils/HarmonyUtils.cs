@@ -1,5 +1,7 @@
+using System.Reflection;
 using HarmonyLib;
 using NeoModLoader.utils.instpredictors;
+using NeoModLoader.utils.Collections;
 
 namespace NeoModLoader.utils;
 

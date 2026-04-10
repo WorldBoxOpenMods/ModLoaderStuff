@@ -1,4 +1,4 @@
-namespace NeoModLoader.utils.Lists;
+namespace NeoModLoader.utils.Collections;
 /// <summary>
 /// a simple implementation of a IList, it is a List by default
 /// </summary>

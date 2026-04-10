@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.ObjectModel;
 
-namespace NeoModLoader.utils.Lists;
+namespace NeoModLoader.utils.Collections;
 /// <summary>
 /// A simple implementation of a concurrent collection, it is a Collection by default
 /// </summary>

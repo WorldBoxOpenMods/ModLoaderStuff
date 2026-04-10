@@ -1,8 +1,4 @@
-using FMOD;
-using UnityEngine;
-
 namespace NeoModLoader.utils.Sounds;
-using static FMODHelper;
 /// <summary>
 /// an Audio library. multiple can be used
 /// </summary>

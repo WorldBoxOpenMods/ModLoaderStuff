@@ -28,7 +28,7 @@ internal static class ModDepenSolveService
         List<ModDeclare> requested_roots = graph.nodes
             .Where(node => node.DesiredEnabled)
             .Select(node => node.mod_decl)
-            .OrderByDescending(mod => mod.ModPriority)
+            .OrderBy(mod => mod.ModPriority)
             .ToList();
 
         foreach (ModDeclare requested_root in requested_roots)
@@ -156,14 +156,19 @@ internal static class ModDepenSolveService
         }
 
         Dictionary<string, int> visit_state = new();
-        foreach (string requested_root_uid in plan.RequestedRoots.OrderBy(uid => uid))
+
+        List<ModDependencyNode> nodes = new List<ModDependencyNode>();
+        foreach (var requested_root_uid in plan.RequestedRoots)
         {
-            if (!graph.TryGetNode(requested_root_uid, out ModDependencyNode root_node))
+            if (!graph.TryGetNode(requested_root_uid, out ModDependencyNode node))
             {
                 plan.SetFailure($"Mod {requested_root_uid} is not recognized.");
                 break;
             }
-
+            nodes.Add(node);
+        }
+        foreach (ModDependencyNode root_node in nodes.OrderBy(uid => uid.mod_decl.ModPriority))
+        {
             if (!visitNode(root_node, plan, visit_state))
             {
                 break;

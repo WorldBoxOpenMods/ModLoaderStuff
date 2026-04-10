@@ -1,10 +1,10 @@
-namespace NeoModLoader.utils.Lists;
+namespace NeoModLoader.utils.Collections;
 /// <summary>
 /// a simple implementation of thread safe ISet, it is a hashset by default
 /// </summary>
 public class ConcurrentSet<T> : ConcurrentCollection<T>, ISet<T>
 {
-    public ISet<T> Set;
+    public readonly ISet<T> Set;
     public ConcurrentSet(ISet<T> collection) : base(collection)
     {
         Set = collection;
