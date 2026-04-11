@@ -107,19 +107,11 @@ public class ModDependencyNode : INode<ModDependencyNode>
         }
     }
 
-    public HashSet<ModDependencyNode> BeforeThis
-    {
-        get => depend_on;
-    }
-    public HashSet<ModDependencyNode> AfterThis
-    {
-        get => depend_by;
-    }
+    public HashSet<ModDependencyNode> BeforeThis => depend_on;
 
-    public int Priority
-    {
-        get => mod_decl.ModPriority ?? ModPriority.Normal;
-    }
+    public HashSet<ModDependencyNode> AfterThis => depend_by;
+
+    public int Priority => mod_decl.ModPriority ?? ModPriority.Normal;
 }
 
 /// <summary>

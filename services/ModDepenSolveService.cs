@@ -163,7 +163,7 @@ internal static class ModDepenSolveService
             if (!graph.TryGetNode(requested_root_uid, out ModDependencyNode node))
             {
                 plan.SetFailure($"Mod {requested_root_uid} is not recognized.");
-                break;
+                return plan;
             }
             nodes.Add(node);
         }

@@ -1,5 +1,6 @@
 ﻿using FMOD;
 using NeoModLoader.services;
+using NeoModLoader.utils.Collections;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -73,11 +74,11 @@ public class SoundHandler
 }
 public class SoundAsset : Asset
 {
-    public readonly Dictionary<int, ISoundPlayer> Players = new();
+    public readonly SlotList<ISoundPlayer> Players = new();
     public readonly SoundHandler Handler = new();
     public void AddPlayer(ISoundPlayer sound)
     {
-        Players.Add(Players.Count, sound);
+        Players.Add(sound);
     }
     /// <summary>
     /// plays a random sound of the Players list
@@ -114,7 +115,7 @@ public class SoundAsset : Asset
     }
     public ISoundPlayer GetRandom()
     {
-        return Players.Count == 0 ? null : Players.Values.GetRandom();
+        return Players.Count == 0 ? null : Players.GetRandom();
     }
 }
 /// <summary>

@@ -1,3 +1,4 @@
+
 namespace NeoModLoader.utils.Collections;
 /// <summary>
 /// interface for sorting lists in your own way.
@@ -24,7 +25,7 @@ public class Sorter<T> : ISorter<T>
     }
 }
 
-public static class ISorterExtentions
+public static class CollectionExtentions
 {
     public static IEnumerable<T> Sort<T>(this IEnumerable<T> collection, ISorter<T> sorter)
     {

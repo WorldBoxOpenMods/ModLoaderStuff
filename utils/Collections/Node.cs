@@ -25,23 +25,13 @@ public static class INodeExtentions
     /// </summary>
     public static bool IsAfter<T>(this T thisnode, T node) where T  : INode<T>
     {
-        bool res = false;
-        foreach (var before in thisnode.BeforeThis)
-        {
-            res = res || before.IsAfter(node);
-        }
-        return res || thisnode.BeforeThis.Contains(node);
+        return thisnode.BeforeThis.Contains(node) || thisnode.BeforeThis.Any(before => before.IsAfter(node));
     }
     /// <summary>
     /// returns true if <see cref="thisnode"/> is before <see cref="node"/>
     /// </summary>
     public static bool IsBefore<T>(this T thisnode, T node) where T  : INode<T>
     {
-        bool res = false;
-        foreach (var after in thisnode.AfterThis)
-        {
-            res = res || after.IsBefore(node);
-        }
-        return res || thisnode.AfterThis.Contains(node);
+        return thisnode.AfterThis.Contains(node) || thisnode.AfterThis.Any(after => after.IsBefore(node));
     }
 }
