@@ -46,7 +46,7 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
         {
             Set(index, new Slot(item));
         }
-        public void Set(int index, Slot item)
+        public void Set(int index, Slot item, bool OverrideActive = false)
         {
             while (slots.Count <= index)
             {
@@ -55,9 +55,12 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
             }
 
             slots[index] = item;
-
-            if (active.Contains(index)) return;
-            active.Add(index);
+            
+            if (!OverrideActive)
+            {
+                if (active.Contains(index)) return;
+                active.Add(index);
+            }
             open.Remove(index);
         }
         public void Clear(int index)
@@ -198,8 +201,7 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
     {
         ValidateIndex(index);
         int slot = Slots.Next;
-        Slots.Set(slot, item);
-        Slots.active.Remove(slot);
+        Slots.Set(slot, new Slot(item), true);
         Slots.active.Insert(index, slot);
     }
  
@@ -259,7 +261,7 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
  
     private void ValidateIndex(int index)
     {
-        if (index >= Count)
+        if (index >= Count || index < 0)
             throw new ArgumentOutOfRangeException(nameof(index),
                 $"Index {index} is out of range for Count={Count}.");
     }
