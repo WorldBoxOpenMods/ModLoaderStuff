@@ -3,7 +3,7 @@ namespace NeoModLoader.utils.Collections;
 /// a simple implementation of a IList, it is a List by default
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class ConcurrentList<T> : ConcurrentCollection<T>, IList<T>
+public class ConcurrentList<T> : ConcurrentCollection<T>, IList<T>, IReadOnlyList<T>
 {
     public readonly IList<T> List;
     public ConcurrentList(IList<T> collection) : base(collection)

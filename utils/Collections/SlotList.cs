@@ -1,288 +1,266 @@
 using System.Collections;
 namespace NeoModLoader.utils.Collections;
+
 /// <summary>
 /// a list of slots which can contain a variable
 /// </summary>
-/// <remarks>thread safe</remarks>
-public sealed class SlotList<T> : IList<T>
+public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
 {
-    private readonly Dictionary<int, T>   _data     = new();
-    private readonly Dictionary<int, int> _position = new(); 
-    private readonly Stack<int>           _free     = new();
-
-    private int[] _active = new int[8];  
-    private int   _count  = 0;
-    private int   _next   = 0;           
-
-    private readonly object _lock = new();
-    
-    public T GetRandom(bool IncludeEmptySlots = false)
+    public class Slot
     {
-        if (IncludeEmptySlots)
-        {
-            lock (_lock)
-            {
-                int candidate = Randy.randomInt(0, _next);
-                return InternalGet(candidate);
-            }
-        }
-        
-        var snap = Volatile.Read(ref _active);
-        int c    = Volatile.Read(ref _count);
+        public T Item;
 
-        if (c == 0) throw new InvalidOperationException("Collection is empty.");
-        
-        lock (_lock)
+        public Slot(T item)
         {
-            int candidate = snap[Randy.randomInt(0, c)];
-            if (_data.TryGetValue(candidate, out var value))
-                return value;
-
-            // candidate was removed in the race window — fall back to a safe read
-            return _count == 0 ? throw new InvalidOperationException("Collection is empty.") : _data[_active[Randy.randomInt(0, _count)]];
+            Item = item;
         }
     }
-
-    public T? Get(int index)
+    public sealed class SlotsList : IList<Slot>, IReadOnlyList<Slot>
     {
-        lock (_lock)
+        internal readonly List<Slot> slots = new();
+        internal readonly List<int> active = new();
+        internal readonly List<int> open = new();
+ 
+        public IReadOnlyList<Slot> Slots => slots;
+        public IReadOnlyList<int> Active => active;
+        public IReadOnlyList<int> Open => open;
+ 
+        public int Next => open.Count > 0 ? open.Pop() : slots.Count;
+ 
+        public bool IsEmpty(int index) => !active.Contains(index);
+ 
+        public bool Exists(int index) => index >= 0 && index < slots.Count;
+ 
+        public int Add(T item)
         {
-            return InternalGet(index);
-        }
-    }
-    T? InternalGet(int index)
-    {
-        if (_data.TryGetValue(index, out var value))
-        {
-            return value;
-        }
-        return default;
-    }
-    public int Add(T value)
-    {
-        lock (_lock)
-        {
-            int index = _free.Count > 0 ? _free.Pop() : _next++;
-            InsertInternal(index, value);
+            int index = Next;
+            Set(index, item);
             return index;
         }
-    }
-    public void Set(int index, T value)
-    {
-        lock (_lock)
+
+        public void Allocate(int index)
         {
-            InternalSet(index, value);
+            open.Add(index);
         }
-    }
-    void InternalSet(int index, T value)
-    {
-        if (_data.ContainsKey(index))
+        public void Set(int index, T item)
         {
-            _data[index] = value;
+            Set(index, new Slot(item));
         }
-        else
+        public void Set(int index, Slot item)
         {
-            if (index >= _next) _next = index + 1;
-
-            InsertInternal(index, value);
-        }
-    }
-    public bool Remove(int index)
-    {
-        lock (_lock)
-        {
-            if (!_data.ContainsKey(index)) return false;
-            RemoveInternal(index);
-            return true;
-        }
-    }
-    private void InsertInternal(int index, T value)
-    {
-        _data[index] = value;
-        EnsureCapacity(_count + 1);
-
-        _active[_count]  = index;
-        _position[index] = _count;
-        _count++;
-    }
-
-    private void RemoveInternal(int index)
-    {
-        int pos       = _position[index];
-        int lastIndex = _active[_count - 1];
-
-        _active[pos]        = lastIndex;
-        _position[lastIndex] = pos;
-        _count--;
-
-        _data.Remove(index);
-        _position.Remove(index);
-        _free.Push(index);
-    }
-
-    private void EnsureCapacity(int required)
-    {
-        if (required <= _active.Length) return;
-
-        int newSize = _active.Length;
-        while (newSize < required) newSize *= 2;
-
-        var next = new int[newSize];
-        Array.Copy(_active, next, _count);
-        Volatile.Write(ref _active, next);
-    }
-
-    public void RemoveAt(int index)
-    {
-        Remove(index);
-    }
-
-    public T this[int key]
-    {
-        get => Get(key);
-        set => Set(key, value);
-    }
-    /// <summary>
-    /// removes the first instance of the item
-    /// </summary>
-    public bool Remove(T item)
-    {
-        lock (_lock)
-        {
-            foreach (var pair in _data)
+            while (slots.Count <= index)
             {
-                if (Equals(pair.Value, item))
-                {
-                    RemoveInternal(pair.Key);
-                    return true;
-                }
+                slots.Add(null);
+                Allocate(slots.Count - 1);
+            }
+
+            slots[index] = item;
+
+            if (active.Contains(index)) return;
+            active.Add(index);
+            open.Remove(index);
+        }
+        public void Clear(int index)
+        {
+            if (!Exists(index)) return;
+ 
+            slots[index] = null;
+ 
+            if (active.Remove(index))
+            {
+                open.Add(index);
             }
         }
-        return false;
-    }
-    /// <summary>
-    /// swaps two slots, if the second slot is empty, it just moves the first item
-    /// </summary>
-    /// <returns>true if the first slot is not empty</returns>
-    public bool Swap(int index, int newindex)
-    {
-        lock (_lock)
+ 
+        public void Insert(int index, T item)
         {
-            if (!_data.TryGetValue(index, out var aVal))
-            {
-                return false;
-            }
-          
-            bool newExists = _data.ContainsKey(newindex);
-            _data.TryGetValue(newindex, out var bVal);
+            Insert(index, new Slot(item));
+        }
+        public Slot Get(int slotIndex)
+        {
+            if (!Exists(slotIndex))
+                throw new ArgumentOutOfRangeException(nameof(slotIndex));
+            return slots[slotIndex];
+        }
 
-            if (!newExists)
+        public void Add(Slot item)
+        {
+            slots.Add(item);
+            if (item == null)
             {
-                RemoveInternal(index);
-                InsertInternal(newindex, aVal!);
+               open.Add(slots.Count-1);
             }
             else
             {
-                _data[index]    = bVal!;
-                _data[newindex] = aVal!;
+                active.Add(slots.Count-1);
             }
+        }
+
+        public void Clear()
+        {
+            slots.Clear();
+            active.Clear();
+            open.Clear();
+        }
+
+        public bool Contains(Slot item)
+        {
+            return slots.Contains(item);
+        }
+
+        public void CopyTo(Slot[] array, int arrayIndex)
+        {
+            slots.CopyTo(array, arrayIndex);
+        }
+
+        public bool Remove(Slot item)
+        {
+            int i = IndexOf(item);
+            if (i <= 0) return false;
+            Clear(i);
             return true;
         }
-    }
-    /// <summary>
-    /// inserts an item into the slot. if the slot is full, the previous item will be pushed to the next slot
-    /// </summary>
-    public void Insert(int index, T item)
-    {
-        lock (_lock)
+
+        public int Count
         {
-            if (_data.TryGetValue(index, out var existing))
+            get => slots.Count;
+        }
+
+        public bool IsReadOnly
+        {
+            get => false;
+        }
+
+        public IEnumerator<Slot> GetEnumerator()
+        {
+            return slots.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public int IndexOf(Slot item)
+        {
+            return slots.IndexOf(item);
+        }
+
+        public void Insert(int index, Slot item)
+        {
+            if (Exists(index) && !IsEmpty(index))
             {
-                int newIndex = _free.Count > 0 ? _free.Pop() : _next++;
-                InsertInternal(newIndex, existing);
+                Slot displaced = slots[index];
+                int next = Next;
+                Set(next, displaced);
             }
-            InternalSet(index, item); 
+            Set(index, item);
+        }
+
+        public void RemoveAt(int index)
+        {
+           Clear(index);
+        }
+
+        public Slot this[int index]
+        {
+            get => slots[index];
+            set => Set(index, value);
         }
     }
+ 
+    public readonly SlotsList Slots = new();
+ 
+    public int Count => Slots.active.Count;
+    public bool IsReadOnly => false;
+ 
+    public T this[int index]
+    {
+        get => Get(index);
+        set => Set(index, value);
+    }
+ 
+    public T Get(int index)
+    {
+        ValidateIndex(index);
+        return Slots.slots[Slots.active[index]].Item;
+    }
+ 
+    public void Set(int index, T value)
+    {
+        ValidateIndex(index);
+        Slots.Set(Slots.active[index], value);
+    }
+ 
+    public void Add(T item) => Slots.Add(item);
+ 
+    public void Insert(int index, T item)
+    {
+        ValidateIndex(index);
+        int slot = Slots.Next;
+        Slots.Set(slot, item);
+        Slots.active.Remove(slot);
+        Slots.active.Insert(index, slot);
+    }
+ 
+    public void RemoveAt(int index)
+    {
+        ValidateIndex(index);
+        Slots.Clear(Slots.active[index]);
+    }
+ 
+    public bool Remove(T item)
+    {
+        int index = IndexOf(item);
+        if (index < 0) return false;
+        RemoveAt(index);
+        return true;
+    }
+ 
     public int IndexOf(T item)
     {
-        lock (_lock)
+        for (int i = 0; i < Slots.active.Count; i++)
         {
-            foreach (var pair in _data)
-            {
-                if (Equals(pair.Value, item))
-                {
-                    return pair.Key;
-                }
-            }
+            if (Equals(Slots.slots[Slots.active[i]], item))
+                return i;
         }
         return -1;
     }
-
-    public int Count { get { lock (_lock) return _next; } }
-
-    public bool IsReadOnly => false;
-
-    public ICollection<int> Slots
-    {
-        get { lock (_lock) return _data.Keys.ToList(); }
-    }
-
-    public ICollection<T> Values
-    {
-        get { lock (_lock) return _data.Values.ToList(); }
-    }
-    
-    public bool IsSlotFull(int key)
-    {
-        lock (_lock) return _data.ContainsKey(key);
-    }
-
-    public bool TryReadSlot(int key, out T value)
-    {
-        lock (_lock) return _data.TryGetValue(key, out value);
-    }
-    public IEnumerator<T> GetEnumerator()
-    {
-        int next;
-        lock (_lock) next = _next;
-
-        for (int i = 0; i < next; i++)
-            yield return Get(i); 
-    }
-    
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    void ICollection<T>.Add(T item)
-    {
-        Add(item);
-    }
-
-    public void Clear()
-    {
-        lock (_lock)
-        {
-            _data.Clear();
-            _position.Clear();
-            _free.Clear();
-            _active = new int[8];
-            _count  = 0;
-            _next   = 0;
-        }
-    }
-
-    public bool Contains(T item)
-    {
-        lock (_lock)
-        {
-            return _data.Values.Contains(item);
-        }
-    }
-
+ 
+    public bool Contains(T item) => IndexOf(item) >= 0;
+ 
+    public void Clear() => Slots.Clear();
+ 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        lock (_lock)
-            foreach (var kv in _data)
-                array[arrayIndex++] = kv.Value;
+        if (arrayIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (array.Length - arrayIndex < Count)
+            throw new ArgumentException("Destination array is too small.", nameof(array));
+ 
+        for (int i = 0; i < Slots.active.Count; i++)
+            array[arrayIndex + i] = Slots.slots[Slots.active[i]].Item;
+    }
+ 
+    public T GetRandom()
+    {
+        if (Count == 0)
+            throw new InvalidOperationException("Cannot get a random item from an empty list.");
+        return Slots.slots[Slots.active[Randy.randomInt(0, Count)]].Item;
+    }
+ 
+    public IEnumerator<T> GetEnumerator()
+    {
+        foreach (int slot in Slots.active)
+            yield return Slots.slots[slot].Item;
+    }
+ 
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+ 
+    private void ValidateIndex(int index)
+    {
+        if (index >= Count)
+            throw new ArgumentOutOfRangeException(nameof(index),
+                $"Index {index} is out of range for Count={Count}.");
     }
 }
