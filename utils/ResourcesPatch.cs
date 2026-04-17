@@ -96,7 +96,7 @@ public static class ResourcesPatch
         }
         player.GenerateSound(abspath);
         string Name = int.TryParse(Path.GetFileName(path), out int Index) ? Path.GetDirectoryName(path) : path;
-        SoundLibrary.MainLibrary.GetOrCreate(Name).Players.Set(Index, player);
+        SoundLibrary.MainLibrary.GetOrCreate(Name).Players.Slots.Set(Index, player);
     }
 
     private static TextAsset LoadTextAsset(string path)

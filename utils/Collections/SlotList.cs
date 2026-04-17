@@ -182,13 +182,11 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
  
     public T Get(int index)
     {
-        ValidateIndex(index);
         return Slots.Slots[Slots.Active[index]].Item;
     }
  
     public void Set(int index, T value)
     {
-        ValidateIndex(index);
         Slots.Set(Slots.Active[index], value);
     }
  
@@ -196,14 +194,12 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
  
     public void Insert(int index, T item)
     {
-        ValidateIndex(index);
         int slot = Slots.Next;
         Slots.Set(slot, new Slot(item), index);
     }
  
     public void RemoveAt(int index)
     {
-        ValidateIndex(index);
         Slots.Clear(Slots.Active[index]);
     }
  
@@ -242,9 +238,7 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
  
     public T GetRandom()
     {
-        if (Count == 0)
-            throw new InvalidOperationException("Cannot get a random item from an empty list.");
-        return Slots.Slots[Slots.Active[Randy.randomInt(0, Count)]].Item;
+        return Count == 0 ? throw new InvalidOperationException("Cannot get a random item from an empty list.") : Slots.Slots[Slots.Active[Randy.randomInt(0, Count)]].Item;
     }
  
     public IEnumerator<T> GetEnumerator()
@@ -254,11 +248,4 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
     }
  
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
- 
-    private void ValidateIndex(int index)
-    {
-        if (index >= Count || index < 0)
-            throw new ArgumentOutOfRangeException(nameof(index),
-                $"Index {index} is out of range for Count={Count}.");
-    }
 }

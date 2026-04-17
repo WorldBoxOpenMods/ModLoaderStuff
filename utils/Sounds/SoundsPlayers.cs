@@ -157,7 +157,6 @@ public class SoundFilePlayer : ISoundPlayer
     /// <summary>
     /// represents a Custom Sound
     /// </summary>
-    /// <param name="ID">the ID of the sound. usually its path from Root Resources Directory</param>
     /// <param name="Mode">the sound mode</param>
     /// <param name="Volume">the volume</param>
     /// <param name="LoopCount">the amount of loops</param>
