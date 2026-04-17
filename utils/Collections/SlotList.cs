@@ -15,11 +15,11 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
             Item = item;
         }
     }
-    public sealed class SlotsList : IList<Slot>, IReadOnlyList<Slot>
+    public sealed class SlotStore : IList<Slot>, IReadOnlyList<Slot>
     {
-        internal readonly List<Slot> slots = new();
-        internal readonly List<int> active = new();
-        internal readonly List<int> open = new();
+        private readonly List<Slot> slots = new();
+        private readonly List<int> active = new();
+        private readonly List<int> open = new();
  
         public IReadOnlyList<Slot> Slots => slots;
         public IReadOnlyList<int> Active => active;
@@ -37,31 +37,32 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
             Set(index, item);
             return index;
         }
-
-        public void Allocate(int index)
+        public void Allocate(int num)
         {
-            open.Add(index);
+            for (int i = 0; i < num; i++)
+            {
+                open.Add(slots.Count);
+                slots.Add(null);
+            }
         }
         public void Set(int index, T item)
         {
             Set(index, new Slot(item));
         }
-        public void Set(int index, Slot item, bool OverrideActive = false)
+        public void Set(int index, Slot item, int OverrideActive = -1)
         {
-            while (slots.Count <= index)
-            {
-                slots.Add(null);
-                Allocate(slots.Count - 1);
-            }
-
+            Allocate(index-slots.Count+1);
             slots[index] = item;
-            
-            if (!OverrideActive)
+            open.Remove(index);
+            if (active.Contains(index) || OverrideActive < -1) return;
+            if (OverrideActive == -1)
             {
-                if (active.Contains(index)) return;
                 active.Add(index);
             }
-            open.Remove(index);
+            else
+            {
+                active.Insert(OverrideActive, index);
+            }
         }
         public void Clear(int index)
         {
@@ -73,11 +74,6 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
             {
                 open.Add(index);
             }
-        }
- 
-        public void Insert(int index, T item)
-        {
-            Insert(index, new Slot(item));
         }
         public Slot Get(int slotIndex)
         {
@@ -119,7 +115,7 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
         public bool Remove(Slot item)
         {
             int i = IndexOf(item);
-            if (i <= 0) return false;
+            if (i < 0) return false;
             Clear(i);
             return true;
         }
@@ -155,7 +151,8 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
             {
                 Slot displaced = slots[index];
                 int next = Next;
-                Set(next, displaced);
+                active[active.IndexOf(index)] = next;
+                Set(next, displaced, -2);
             }
             Set(index, item);
         }
@@ -172,9 +169,9 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
         }
     }
  
-    public readonly SlotsList Slots = new();
+    public readonly SlotStore Slots = new();
  
-    public int Count => Slots.active.Count;
+    public int Count => Slots.Active.Count;
     public bool IsReadOnly => false;
  
     public T this[int index]
@@ -186,13 +183,13 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
     public T Get(int index)
     {
         ValidateIndex(index);
-        return Slots.slots[Slots.active[index]].Item;
+        return Slots.Slots[Slots.Active[index]].Item;
     }
  
     public void Set(int index, T value)
     {
         ValidateIndex(index);
-        Slots.Set(Slots.active[index], value);
+        Slots.Set(Slots.Active[index], value);
     }
  
     public void Add(T item) => Slots.Add(item);
@@ -201,14 +198,13 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
     {
         ValidateIndex(index);
         int slot = Slots.Next;
-        Slots.Set(slot, new Slot(item), true);
-        Slots.active.Insert(index, slot);
+        Slots.Set(slot, new Slot(item), index);
     }
  
     public void RemoveAt(int index)
     {
         ValidateIndex(index);
-        Slots.Clear(Slots.active[index]);
+        Slots.Clear(Slots.Active[index]);
     }
  
     public bool Remove(T item)
@@ -221,9 +217,9 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
  
     public int IndexOf(T item)
     {
-        for (int i = 0; i < Slots.active.Count; i++)
+        for (int i = 0; i < Slots.Active.Count; i++)
         {
-            if (Equals(Slots.slots[Slots.active[i]], item))
+            if (Equals(Slots.Slots[Slots.Active[i]].Item, item))
                 return i;
         }
         return -1;
@@ -240,21 +236,21 @@ public sealed class SlotList<T> : IList<T>, IReadOnlyList<T>
         if (array.Length - arrayIndex < Count)
             throw new ArgumentException("Destination array is too small.", nameof(array));
  
-        for (int i = 0; i < Slots.active.Count; i++)
-            array[arrayIndex + i] = Slots.slots[Slots.active[i]].Item;
+        for (int i = 0; i < Slots.Active.Count; i++)
+            array[arrayIndex + i] = Slots.Slots[Slots.Active[i]].Item;
     }
  
     public T GetRandom()
     {
         if (Count == 0)
             throw new InvalidOperationException("Cannot get a random item from an empty list.");
-        return Slots.slots[Slots.active[Randy.randomInt(0, Count)]].Item;
+        return Slots.Slots[Slots.Active[Randy.randomInt(0, Count)]].Item;
     }
  
     public IEnumerator<T> GetEnumerator()
     {
-        foreach (int slot in Slots.active)
-            yield return Slots.slots[slot].Item;
+        foreach (int slot in Slots.Active)
+            yield return Slots.Slots[slot].Item;
     }
  
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
