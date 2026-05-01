@@ -16,7 +16,7 @@ public static class ModPriority
     public const int HigherThanNormal = 300;
     public const int High = 200;
     public const int VeryHigh = 100;
-    public const int First = 000;
+    public const int First = 0;
 }
 /// <summary>
 ///     Dependency node for mod dependency graph.

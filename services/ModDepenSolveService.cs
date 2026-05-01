@@ -156,19 +156,14 @@ internal static class ModDepenSolveService
         }
 
         Dictionary<string, int> visit_state = new();
-
-        List<ModDependencyNode> nodes = new List<ModDependencyNode>();
-        foreach (var requested_root_uid in plan.RequestedRoots)
+        foreach (string requested_root_uid in plan.RequestedRoots.OrderBy(uid => uid))
         {
-            if (!graph.TryGetNode(requested_root_uid, out ModDependencyNode node))
+            if (!graph.TryGetNode(requested_root_uid, out ModDependencyNode root_node))
             {
                 plan.SetFailure($"Mod {requested_root_uid} is not recognized.");
-                return plan;
+                break;
             }
-            nodes.Add(node);
-        }
-        foreach (ModDependencyNode root_node in nodes.OrderBy(uid => uid.mod_decl.ModPriority))
-        {
+
             if (!visitNode(root_node, plan, visit_state))
             {
                 break;
